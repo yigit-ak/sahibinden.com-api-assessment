@@ -1,5 +1,6 @@
 package com.sahibinden.codecase.entity;
 
+import com.sahibinden.codecase.utility.DuplicateKey;
 import lombok.*;
 
 import javax.persistence.*;
@@ -42,5 +43,61 @@ public class Classified {
     @Column(nullable = false)
     @NotNull
     private Status status;
+
+    @Column(name = "duplicate_key", nullable = false, length = 43)
+    private String duplicateKey;
+
+    // Recompute only when inputs are available
+    private void refreshDuplicateKeyIfReady() {
+        if (category != null && title != null && detail != null) {
+            this.duplicateKey = DuplicateKey.of(this);
+        }
+    }
+
+    // Override setters that affect the key
+    public void setTitle(String title) {
+        this.title = title;
+        refreshDuplicateKeyIfReady();
+    }
+
+    public void setDetail(String detail) {
+        this.detail = detail;
+        refreshDuplicateKeyIfReady();
+    }
+
+    public void setCategory(Category category) {
+        this.category = category;
+        refreshDuplicateKeyIfReady();
+    }
+
+    /* ------------ Builder customization ------------ */
+
+    // Lombok will generate fields for the builder; we override build() to finalize the key.
+    public static class ClassifiedBuilder {
+        public Classified build() {
+            Classified c = new Classified();
+            c.id = this.id;
+            c.title = this.title;
+            c.detail = this.detail;
+            c.category = this.category;
+            c.status  = this.status;
+            // If caller didn’t supply a key, compute it now (when inputs are present)
+            c.refreshDuplicateKeyIfReady();
+            return c;
+        }
+    }
+
+    /* ------------ JPA lifecycle safety net ------------ */
+
+    @PrePersist
+    @PreUpdate
+    void prePersistOrUpdate() {
+        // default status if caller didn’t set
+        if (status == null) {
+            status = (category == Category.SHOPPING) ? Status.ACTIVE : Status.PENDING_APPROVAL;
+        }
+        // ensure DB has the right fingerprint
+        refreshDuplicateKeyIfReady();
+    }
 
 }

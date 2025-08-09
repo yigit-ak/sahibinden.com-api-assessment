@@ -1,18 +1,16 @@
 package com.sahibinden.codecase.entity;
 
+import com.sahibinden.codecase.utility.DuplicateKey;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
-import javax.validation.ConstraintViolation;
-import javax.validation.Validation;
-import javax.validation.Validator;
-import javax.validation.ValidatorFactory;
+import javax.validation.*;
+import java.lang.reflect.Method;
 import java.util.Set;
 
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.*;
 
-
-class ClassifiedValidationTest {
+class ClassifiedTest {
 
     private static Validator validator;
 
@@ -31,22 +29,21 @@ class ClassifiedValidationTest {
 
     private Classified valid() {
         return Classified.builder()
-                .id(123456789)
-                .title("3+1 Daire İlanı - Şehir Merkezi") // starts with letter/digit, len 10–50
+                .title("3+1 Daire İlanı - Şehir Merkezi")
                 .detail("Merkezde geniş, aydınlık daire. Okullara ve toplu taşımaya yakın.")
                 .category(Category.REAL_ESTATE)
                 .status(Status.ACTIVE)
                 .build();
     }
 
+    // --- Bean Validation ---
+
     @Test
     void validEntity_passes() {
         var c = valid();
         var violations = validator.validate(c);
-        assertTrue(violations.isEmpty(), "Expected no violations for a valid entity");
+        assertTrue(violations.isEmpty());
     }
-
-    // --- title ---
 
     @Test
     void title_blank_fails() {
@@ -75,7 +72,7 @@ class ClassifiedValidationTest {
     @Test
     void title_mustStartWithLetterOrDigit_fails() {
         var c = valid();
-        c.setTitle("-Başlık tire ile"); // starts with punctuation
+        c.setTitle("-Başlık tire ile");
         var v = validator.validate(c);
         assertTrue(hasViolation(v, "title", "Title must start with a letter or digit"));
     }
@@ -83,12 +80,10 @@ class ClassifiedValidationTest {
     @Test
     void title_unicodeLetter_start_ok() {
         var c = valid();
-        c.setTitle("İlan başlığı — merkezde"); // starts with Unicode letter
+        c.setTitle("İlan başlığı — merkezde");
         var v = validator.validate(c);
         assertTrue(v.isEmpty());
     }
-
-    // --- detail ---
 
     @Test
     void detail_blank_fails() {
@@ -106,8 +101,6 @@ class ClassifiedValidationTest {
         assertTrue(hasViolation(v, "detail", "size must be between 20 and 200"));
     }
 
-    // --- enums ---
-
     @Test
     void category_null_fails() {
         var c = valid();
@@ -122,5 +115,81 @@ class ClassifiedValidationTest {
         c.setStatus(null);
         var v = validator.validate(c);
         assertTrue(hasViolation(v, "status", "must not be null"));
+    }
+
+    // --- duplicateKey behavior ---
+
+    @Test
+    void builder_sets_duplicateKey_when_fields_present() {
+        var c = valid();
+        assertNotNull(c.getDuplicateKey(), "duplicateKey should be computed by builder");
+        assertTrue(c.getDuplicateKey().matches("^[A-Za-z0-9_-]{43}$"),
+                "Must be base64url, no padding, len=43");
+    }
+
+    @Test
+    void duplicateKey_matchesUtilityMethod() {
+        var c = valid();
+        String expected = DuplicateKey.of(c);
+        assertEquals(expected, c.getDuplicateKey());
+    }
+
+    @Test
+    void setters_recompute_duplicateKey_on_title_change() {
+        var c = valid();
+        String k1 = c.getDuplicateKey();
+        c.setTitle("3+1 Şehir Merkezi Daire (Geniş ve Aydınlık)");
+        String k2 = c.getDuplicateKey();
+        assertNotEquals(k1, k2, "Changing title must change duplicateKey");
+    }
+
+    @Test
+    void setters_recompute_duplicateKey_on_detail_change() {
+        var c = valid();
+        String k1 = c.getDuplicateKey();
+        c.setDetail("Yeni detay: metroya, okullara ve parklara çok yakın, bakımlı bir daire.");
+        String k2 = c.getDuplicateKey();
+        assertNotEquals(k1, k2, "Changing detail must change duplicateKey");
+    }
+
+    @Test
+    void setters_recompute_duplicateKey_on_category_change() {
+        var c = valid();
+        String k1 = c.getDuplicateKey();
+        c.setCategory(Category.SHOPPING);
+        String k2 = c.getDuplicateKey();
+        assertNotEquals(k1, k2, "Changing category must change duplicateKey");
+    }
+
+    // --- JPA lifecycle defaults ---
+
+    @Test
+    void prePersist_sets_default_status_for_nonShopping() {
+        var c = Classified.builder()
+                .title("Merkezde geniş daire 3+1")
+                .detail("Ulaşım ve okullara yakın, aydınlık ve bakımlı daire.")
+                .category(Category.REAL_ESTATE)
+                .status(null) // let lifecycle decide
+                .build();
+
+        c.prePersistOrUpdate();
+
+        assertEquals(Status.PENDING_APPROVAL, c.getStatus());
+        assertNotNull(c.getDuplicateKey());
+    }
+
+    @Test
+    void prePersist_sets_default_status_active_for_shopping() {
+        var c = Classified.builder()
+                .title("İndirimli elektronik alışveriş ilanı")
+                .detail("Garantili, faturalı ürün. Kargo alıcıya aittir. Detaylar için mesaj atın.")
+                .category(Category.SHOPPING)
+                .status(null)
+                .build();
+
+        c.prePersistOrUpdate();
+
+        assertEquals(Status.ACTIVE, c.getStatus());
+        assertNotNull(c.getDuplicateKey());
     }
 }
