@@ -2,12 +2,15 @@ package com.sahibinden.codecase.entity;
 
 import com.sahibinden.codecase.utility.DuplicateKey;
 import lombok.*;
+import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.UpdateTimestamp;
 
 import javax.persistence.*;
 import javax.validation.constraints.NotBlank;
 import javax.validation.constraints.NotNull;
 import javax.validation.constraints.Pattern;
 import javax.validation.constraints.Size;
+import java.time.Instant;
 
 @Getter
 @Setter
@@ -50,6 +53,14 @@ public class Classified {
     @Column(name = "duplicate_key", nullable = false, length = 43)
     private String duplicateKey;
 
+    @CreationTimestamp
+    @Column(nullable = false, updatable = false)
+    private Instant createdAt;
+
+    @UpdateTimestamp
+    @Column(nullable = false)
+    private Instant updatedAt;
+
     // Recompute only when inputs are available
     private void refreshDuplicateKeyIfReady() {
         if (category != null && title != null && detail != null) {
@@ -73,7 +84,7 @@ public class Classified {
         refreshDuplicateKeyIfReady();
     }
 
-    /* ------------ Builder customization ------------ */
+    /* ------------ JPA lifecycle safety net ------------ */
 
     @PrePersist
     @PreUpdate
@@ -86,9 +97,9 @@ public class Classified {
         refreshDuplicateKeyIfReady();
     }
 
-    /* ------------ JPA lifecycle safety net ------------ */
+    /* ------------ Builder customization ------------ */
 
-    // Lombok will generate fields for the builder; we override build() to finalize the key.
+    // Lombok will generate fields for the builder; build() id overridden to finalize the key.
     public static class ClassifiedBuilder {
         public Classified build() {
             Classified c = new Classified();
