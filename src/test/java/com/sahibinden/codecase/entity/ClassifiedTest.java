@@ -4,8 +4,10 @@ import com.sahibinden.codecase.utility.DuplicateKey;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
-import javax.validation.*;
-import java.lang.reflect.Method;
+import javax.validation.ConstraintViolation;
+import javax.validation.Validation;
+import javax.validation.Validator;
+import javax.validation.ValidatorFactory;
 import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.*;

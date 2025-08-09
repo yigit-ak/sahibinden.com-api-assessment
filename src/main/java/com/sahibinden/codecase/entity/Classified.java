@@ -72,23 +72,6 @@ public class Classified {
 
     /* ------------ Builder customization ------------ */
 
-    // Lombok will generate fields for the builder; we override build() to finalize the key.
-    public static class ClassifiedBuilder {
-        public Classified build() {
-            Classified c = new Classified();
-            c.id = this.id;
-            c.title = this.title;
-            c.detail = this.detail;
-            c.category = this.category;
-            c.status  = this.status;
-            // If caller didn’t supply a key, compute it now (when inputs are present)
-            c.refreshDuplicateKeyIfReady();
-            return c;
-        }
-    }
-
-    /* ------------ JPA lifecycle safety net ------------ */
-
     @PrePersist
     @PreUpdate
     void prePersistOrUpdate() {
@@ -98,6 +81,23 @@ public class Classified {
         }
         // ensure DB has the right fingerprint
         refreshDuplicateKeyIfReady();
+    }
+
+    /* ------------ JPA lifecycle safety net ------------ */
+
+    // Lombok will generate fields for the builder; we override build() to finalize the key.
+    public static class ClassifiedBuilder {
+        public Classified build() {
+            Classified c = new Classified();
+            c.id = this.id;
+            c.title = this.title;
+            c.detail = this.detail;
+            c.category = this.category;
+            c.status = this.status;
+            // If caller didn’t supply a key, compute it now (when inputs are present)
+            c.refreshDuplicateKeyIfReady();
+            return c;
+        }
     }
 
 }
