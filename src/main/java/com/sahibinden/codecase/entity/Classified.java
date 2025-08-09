@@ -7,7 +7,6 @@ import javax.validation.constraints.NotBlank;
 import javax.validation.constraints.NotNull;
 import javax.validation.constraints.Pattern;
 import javax.validation.constraints.Size;
-import java.util.UUID;
 
 @Getter
 @Setter
@@ -21,7 +20,7 @@ public class Classified {
 
     @Id
     @GeneratedValue
-    private UUID id;
+    private long id;
 
     @NotBlank
     @Size(min = 10, max = 50)
