@@ -16,7 +16,10 @@ import javax.validation.constraints.Size;
 @AllArgsConstructor
 @ToString
 @Entity
-@Table(name = "classifieds")
+@Table(name = "classifieds", indexes = {
+        @Index(name = "idx_classified_status", columnList = "status"),
+        @Index(name = "idx_classified_dupkey", columnList = "duplicate_key")
+})
 public class Classified {
 
     @Id
