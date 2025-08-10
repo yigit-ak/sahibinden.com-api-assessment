@@ -32,9 +32,9 @@ public class ClassifiedController {
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<Classified> getClassified(@PathVariable Long id) {
-        Classified classified = classifiedService.getClassifiedById(id);
-        return ResponseEntity.ok(classified);
+    public ResponseEntity<ClassifiedDto> getClassified(@PathVariable Long id) {
+        ClassifiedDto dto = classifiedMapper.toDto(classifiedService.getClassifiedById(id));
+        return ResponseEntity.ok(dto);
     }
 
 }
