@@ -2,6 +2,7 @@ package com.sahibinden.codecase.dto;
 
 import com.sahibinden.codecase.entity.Category;
 import com.sahibinden.codecase.validation.NoBadWords;
+import lombok.Builder;
 import lombok.Data;
 
 import javax.validation.constraints.NotBlank;
@@ -10,6 +11,7 @@ import javax.validation.constraints.Pattern;
 import javax.validation.constraints.Size;
 
 @Data
+@Builder
 public class NewClassifiedDto {
     @NotBlank
     @Size(min = 10, max = 50)
