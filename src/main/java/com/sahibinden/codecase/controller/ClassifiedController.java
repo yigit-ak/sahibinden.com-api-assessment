@@ -1,6 +1,8 @@
 package com.sahibinden.codecase.controller;
 
+import com.sahibinden.codecase.dto.ClassifiedDto;
 import com.sahibinden.codecase.dto.NewClassifiedDto;
+import com.sahibinden.codecase.dto.StatusUpdateDto;
 import com.sahibinden.codecase.entity.Classified;
 import com.sahibinden.codecase.mapper.ClassifiedMapper;
 import com.sahibinden.codecase.service.ClassifiedService;
@@ -35,6 +37,12 @@ public class ClassifiedController {
     public ResponseEntity<ClassifiedDto> getClassified(@PathVariable Long id) {
         ClassifiedDto dto = classifiedMapper.toDto(classifiedService.getClassifiedById(id));
         return ResponseEntity.ok(dto);
+    }
+
+    @PutMapping("/{id}/status")
+    public ResponseEntity<?> updateClassifiedStatus(@PathVariable Long id, @Valid @RequestBody StatusUpdateDto dto) {
+        classifiedService.updateClassifiedStatus(id, dto.getStatus());
+        return ResponseEntity.ok().build();
     }
 
 }

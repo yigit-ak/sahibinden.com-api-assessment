@@ -2,10 +2,13 @@ package com.sahibinden.codecase.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.sahibinden.codecase.dto.NewClassifiedDto;
+import com.sahibinden.codecase.dto.StatusUpdateDto;
+import com.sahibinden.codecase.entity.Category;
 import com.sahibinden.codecase.entity.Classified;
 import com.sahibinden.codecase.entity.Status;
 import com.sahibinden.codecase.repository.ClassifiedRepository;
 import org.hamcrest.Matchers;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
@@ -20,6 +23,7 @@ import static com.sahibinden.codecase.test_helper.ResponseHeaderExtractor.extrac
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -29,21 +33,28 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @ActiveProfiles("test")
 class ClassifiedControllerIntegrationTest {
 
+    private final String BASE_URL = "/api/v1/classifieds";
+    private final String DUMMY_TITLE = "Dummy Classified Title";
+    private final String DUMMY_DETAIL = "This is a dummy classified detail for testing purposes.";
+    private final String DUMMY_CATEGORY = "SHOPPING";
     @Autowired
     MockMvc mockMvc;
-
     @Autowired
     ObjectMapper objectMapper;
-
     @Autowired
     ClassifiedRepository classifiedRepository;
+
+    @BeforeEach
+    void setUp() {
+        classifiedRepository.deleteAll();
+    }
 
     @Test
     void createClassified_returns201_and_persists_entity() throws Exception {
 
         NewClassifiedDto dto = NewClassifiedDto.builder()
-                .title("Sunny 2+1 flat near metro")
-                .detail("Bright, renovated 2+1 apartment close to metro and shops.")
+                .title(DUMMY_TITLE)
+                .detail(DUMMY_DETAIL)
                 .category("SHOPPING")
                 .build();
 
@@ -51,19 +62,19 @@ class ClassifiedControllerIntegrationTest {
 
         MvcResult result = mockMvc
                 .perform(
-                        post("/api/v1/classifieds")
+                        post(BASE_URL)
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content(body))
                 .andExpect(status().isCreated())
                 .andExpect(header().string("Location",
-                        Matchers.matchesPattern(".*/api/v1/classifieds/\\d+$")))
+                        Matchers.matchesPattern(".+" + BASE_URL + "/\\d+$")))
                 .andReturn();
 
         // Extract the created ID from Location header and assert DB state
         String location = extractLocation(result);
         assertNotNull(location);
 
-        long id = Long.parseLong(location.replaceAll(".*/", ""));
+        long id = extractId(result);
 
         Classified saved = classifiedRepository.findById(id).orElseThrow();
 
@@ -78,16 +89,16 @@ class ClassifiedControllerIntegrationTest {
     void posting_same_content_twice_marks_second_as_DUPLICATE() throws Exception {
 
         NewClassifiedDto duplicateDto = NewClassifiedDto.builder()
-                .title("Cozy studio in city center")
-                .detail("Furnished, walk to metro and markets. Ideal for singles.")
-                .category("SHOPPING")
+                .title(DUMMY_TITLE)
+                .detail(DUMMY_DETAIL)
+                .category(DUMMY_CATEGORY)
                 .build();
 
         String body = objectMapper.writeValueAsString(duplicateDto);
 
         long id1 = extractId(mockMvc
                 .perform(
-                        post("/api/v1/classifieds")
+                        post(BASE_URL)
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content(body))
                 .andExpect(status().isCreated())
@@ -95,7 +106,7 @@ class ClassifiedControllerIntegrationTest {
 
         long id2 = extractId(mockMvc
                 .perform(
-                        post("/api/v1/classifieds")
+                        post(BASE_URL)
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content(body))
                 .andExpect(status().isCreated())
@@ -112,16 +123,60 @@ class ClassifiedControllerIntegrationTest {
     @Test
     void validation_failure_returns400() throws Exception {
         String body = objectMapper.writeValueAsString(NewClassifiedDto.builder()
-                .title("shrt-ttle")
-                .detail("Bright, renovated 2+1 apartment close to metro and shops.")
-                .category("SHOPPING")
+                .title("short") // too short title
+                .detail(DUMMY_DETAIL)
+                .category(DUMMY_CATEGORY)
                 .build());
 
         mockMvc.perform(
-                        post("/api/v1/classifieds")
+                        post(BASE_URL)
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content(body))
                 .andExpect(status().isBadRequest());
     }
 
+    @Test
+    void change_status_to_valid_value_returns_ok() throws Exception {
+        String body = objectMapper.writeValueAsString(new StatusUpdateDto(Status.ACTIVE));
+        long classifiedId = classifiedRepository
+                .save(Classified.builder()
+                        .title(DUMMY_TITLE)
+                        .detail(DUMMY_DETAIL)
+                        .category(Category.valueOf(DUMMY_CATEGORY))
+                        .status(Status.PENDING_APPROVAL)
+                        .build())
+                .getId();
+
+        mockMvc.perform(
+                        put(String.format("%s/%d/status", BASE_URL, classifiedId))
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(body))
+                .andExpect(status().isOk());
+
+        assertEquals(Status.ACTIVE, classifiedRepository.findById(classifiedId)
+                .orElseThrow().getStatus(), "Status should be updated to ACTIVE");
+    }
+
+    @Test
+    void change_status_to_invalid_value_returns_bad_request() throws Exception {
+        long classifiedId = classifiedRepository.save(
+                Classified.builder()
+                        .title(DUMMY_TITLE)
+                        .detail(DUMMY_DETAIL)
+                        .category(Category.valueOf(DUMMY_CATEGORY))
+                        .status(Status.DUPLICATE) // assume DUPLICATE -> ACTIVE is illegal
+                        .build()
+        ).getId();
+
+        String body = objectMapper.writeValueAsString(new StatusUpdateDto(Status.ACTIVE));
+
+        mockMvc.perform(
+                put(String.format("%s/%d/status", BASE_URL, classifiedId))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(body)
+        ).andExpect(status().isBadRequest());
+
+        assertEquals(Status.DUPLICATE,
+                classifiedRepository.findById(classifiedId).orElseThrow().getStatus());
+    }
 }

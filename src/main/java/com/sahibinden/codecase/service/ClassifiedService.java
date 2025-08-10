@@ -1,5 +1,6 @@
 package com.sahibinden.codecase.service;
 
+import com.sahibinden.codecase.domain.StatusMachine;
 import com.sahibinden.codecase.entity.Classified;
 import com.sahibinden.codecase.entity.Status;
 import com.sahibinden.codecase.repository.ClassifiedRepository;
@@ -22,5 +23,12 @@ public class ClassifiedService {
     public Classified getClassifiedById(Long id) {
         return classifiedRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Classified not found with id: " + id));
+    }
+
+    public void updateClassifiedStatus(Long id, Status newStatus) {
+        Classified classified = getClassifiedById(id);
+        StatusMachine.assertTransition(classified.getStatus(), newStatus);
+        classified.setStatus(newStatus);
+        classifiedRepository.save(classified);
     }
 }
