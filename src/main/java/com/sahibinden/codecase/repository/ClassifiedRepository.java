@@ -7,4 +7,5 @@ import java.util.Optional;
 
 public interface ClassifiedRepository extends JpaRepository<Classified, Long> {
     Optional<Classified> findById(Long id);
+    Boolean existsByDuplicateKey(String duplicateKey);
 }
