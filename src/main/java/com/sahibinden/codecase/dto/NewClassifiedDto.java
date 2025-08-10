@@ -15,13 +15,13 @@ public class NewClassifiedDto {
     @Size(min = 10, max = 50)
     @Pattern(regexp = "^[\\p{L}\\p{Nd}].*", message = "Title must start with a letter or digit")
     @NoBadWords
-    private String title;
+    private final String title;
 
     @NotBlank
     @Size(min = 20, max = 200)
     @NoBadWords
-    private String detail;
+    private final String detail;
 
     @NotNull
-    private Category category;
+    private final Category category;
 }
