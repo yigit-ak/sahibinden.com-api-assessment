@@ -4,7 +4,9 @@ import com.sahibinden.codecase.dto.ClassifiedDto;
 import com.sahibinden.codecase.dto.NewClassifiedDto;
 import com.sahibinden.codecase.entity.Category;
 import com.sahibinden.codecase.entity.Classified;
+import org.springframework.stereotype.Component;
 
+@Component
 public class CustomClassifiedMapper implements ClassifiedMapper {
 
     @Override
