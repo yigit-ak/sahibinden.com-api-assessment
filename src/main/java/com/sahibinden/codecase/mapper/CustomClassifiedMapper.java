@@ -2,6 +2,7 @@ package com.sahibinden.codecase.mapper;
 
 import com.sahibinden.codecase.dto.ClassifiedDto;
 import com.sahibinden.codecase.dto.NewClassifiedDto;
+import com.sahibinden.codecase.entity.Category;
 import com.sahibinden.codecase.entity.Classified;
 
 public class CustomClassifiedMapper implements ClassifiedMapper {
@@ -11,7 +12,7 @@ public class CustomClassifiedMapper implements ClassifiedMapper {
         return Classified.builder()
                 .title(dto.getTitle())
                 .detail(dto.getDetail())
-                .category(dto.getCategory())
+                .category(Category.valueOf(dto.getCategory()))
                 .build();
     }
 
@@ -21,8 +22,8 @@ public class CustomClassifiedMapper implements ClassifiedMapper {
                 .id(classified.getId())
                 .title(classified.getTitle())
                 .detail(classified.getDetail())
-                .category(classified.getCategory())
-                .status(classified.getStatus())
+                .category(classified.getCategory().name())
+                .status(classified.getStatus().name())
                 .build();
     }
 }

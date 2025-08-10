@@ -19,7 +19,7 @@ class CustomClassifiedMapperTest {
         NewClassifiedDto dto = NewClassifiedDto.builder()
                 .title("Some valid title")
                 .detail("Some valid detail with enough length")
-                .category(Category.SHOPPING)
+                .category(Category.SHOPPING.name())
                 .build();
 
         Classified e = mapper.toEntity(dto);
@@ -51,7 +51,7 @@ class CustomClassifiedMapperTest {
         assertEquals(123L, dto.getId());
         assertEquals("Title", dto.getTitle());
         assertEquals("Detail long enough for the entity", dto.getDetail());
-        assertEquals(Category.SHOPPING, dto.getCategory());
-        assertEquals(Status.ACTIVE, dto.getStatus());
+        assertEquals(Category.SHOPPING.name(), dto.getCategory());
+        assertEquals(Status.ACTIVE.name(), dto.getStatus());
     }
 }

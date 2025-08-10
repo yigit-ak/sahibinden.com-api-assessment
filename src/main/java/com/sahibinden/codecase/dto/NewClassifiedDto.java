@@ -1,6 +1,5 @@
 package com.sahibinden.codecase.dto;
 
-import com.sahibinden.codecase.entity.Category;
 import com.sahibinden.codecase.validation.NoBadWords;
 import lombok.Builder;
 import lombok.Data;
@@ -25,5 +24,5 @@ public class NewClassifiedDto {
     private final String detail;
 
     @NotNull
-    private final Category category;
+    private final String category;
 }
