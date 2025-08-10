@@ -14,7 +14,7 @@ import static org.junit.jupiter.api.Assertions.*;
 
 @SpringBootTest
 @ActiveProfiles("test")
-class NoBadWordsIT {
+class NoBadWordsTest {
 
     @Autowired
     Validator validator;
