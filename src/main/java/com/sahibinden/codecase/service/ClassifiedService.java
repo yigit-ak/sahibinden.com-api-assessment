@@ -12,12 +12,14 @@ import org.springframework.stereotype.Service;
 public class ClassifiedService {
 
     private final ClassifiedRepository classifiedRepository;
+    private final StatusLogService statusLogService;
 
     public Classified createClassified(Classified classified) {
         if (classifiedRepository.existsByDuplicateKey(classified.getDuplicateKey()))
             classified.setStatus(Status.DUPLICATE);
-
-        return classifiedRepository.save(classified);
+        Classified newClassified = classifiedRepository.save(classified);
+        statusLogService.saveStatusChange(newClassified);
+        return newClassified;
     }
 
     public Classified getClassifiedById(Long id) {
@@ -29,6 +31,7 @@ public class ClassifiedService {
         Classified classified = getClassifiedById(id);
         StatusMachine.assertTransition(classified.getStatus(), newStatus);
         classified.setStatus(newStatus);
+        statusLogService.saveStatusChange(classified);
         classifiedRepository.save(classified);
     }
 }

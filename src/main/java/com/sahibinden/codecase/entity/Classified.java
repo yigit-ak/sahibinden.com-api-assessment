@@ -1,5 +1,6 @@
 package com.sahibinden.codecase.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.sahibinden.codecase.utility.DuplicateKey;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
@@ -11,6 +12,8 @@ import javax.validation.constraints.NotNull;
 import javax.validation.constraints.Pattern;
 import javax.validation.constraints.Size;
 import java.time.Instant;
+import java.util.ArrayList;
+import java.util.List;
 
 @Getter
 @Setter
@@ -52,6 +55,11 @@ public class Classified {
 
     @Column(name = "duplicate_key", nullable = false, length = 43)
     private String duplicateKey;
+
+    @OneToMany(mappedBy = "classified", fetch = FetchType.LAZY, cascade = CascadeType.ALL, orphanRemoval = true)
+    @ToString.Exclude
+    @JsonIgnore
+    private List<StatusLog> statusLogs = new ArrayList<>();
 
     @CreationTimestamp
     @Column(nullable = false, updatable = false)

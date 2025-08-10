@@ -20,12 +20,11 @@ import org.springframework.test.web.servlet.MvcResult;
 
 import static com.sahibinden.codecase.test_helper.ResponseHeaderExtractor.extractId;
 import static com.sahibinden.codecase.test_helper.ResponseHeaderExtractor.extractLocation;
+import static org.hamcrest.Matchers.hasSize;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 
 @SpringBootTest
@@ -178,5 +177,48 @@ class ClassifiedControllerIntegrationTest {
 
         assertEquals(Status.DUPLICATE,
                 classifiedRepository.findById(classifiedId).orElseThrow().getStatus());
+    }
+
+    @Test
+    void get_classified_status_history_returns_ok() throws Exception {
+        // create
+        var createBody = objectMapper.writeValueAsString(
+                NewClassifiedDto.builder()
+                        .title(DUMMY_TITLE)
+                        .detail(DUMMY_DETAIL)
+                        .category(Category.REAL_ESTATE.name())
+                        .build());
+
+        long classifiedId = extractId(
+                mockMvc.perform(post(BASE_URL)
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(createBody))
+                        .andExpect(status().isCreated())
+                        .andReturn());
+
+        // transition 1: -> ACTIVE
+        mockMvc.perform(put(String.format("%s/%d/status", BASE_URL, classifiedId))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(new StatusUpdateDto(Status.ACTIVE))))
+                .andExpect(status().isOk());
+
+        // transition 2: -> DEACTIVATED
+        mockMvc.perform(put(String.format("%s/%d/status", BASE_URL, classifiedId))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(new StatusUpdateDto(Status.DEACTIVATED))))
+                .andExpect(status().isOk());
+
+        // fetch history
+        mockMvc.perform(get(String.format("%s/%d/history", BASE_URL, classifiedId)))
+                .andExpect(status().isOk())
+                .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
+                .andExpect(jsonPath("$", hasSize(3)))
+                .andExpect(jsonPath("$[0].status").value("PENDING_APPROVAL"))
+                .andExpect(jsonPath("$[1].status").value("ACTIVE"))
+                .andExpect(jsonPath("$[2].status").value("DEACTIVATED"))
+                .andExpect(jsonPath("$[0].createdAt").exists())
+                .andExpect(jsonPath("$[1].createdAt").exists())
+                .andExpect(jsonPath("$[2].createdAt").exists());
+
     }
 }
